@@ -1,0 +1,1 @@
+# ProjetoFinal_ADW2026.2
