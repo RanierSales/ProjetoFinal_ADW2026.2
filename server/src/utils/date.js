@@ -11,4 +11,11 @@ function dataBR(iso) {
   return `${d}/${m}/${y}`;
 }
 
-module.exports = { hoje, dataBR };
+// Soma (ou subtrai) dias de uma data YYYY-MM-DD sem depender de fuso.
+function addDays(iso, n) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+module.exports = { hoje, dataBR, addDays };

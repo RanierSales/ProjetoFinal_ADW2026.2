@@ -70,4 +70,71 @@ async function notificarDecisao(ap) {
   });
 }
 
-module.exports = { notificarNovaSolicitacao, notificarDecisao };
+async function notificarContraproposta(ap) {
+  const linhas = [
+    `O Centro de Distribuição não pôde receber na data sugerida e propõe outra:`,
+    `Nova data: ${dataBR(ap.dataProposta)} às ${ap.horarioProposto}`,
+    ap.observacaoAdmin ? `Observação do CD: ${ap.observacaoAdmin}` : null,
+    `Notas: ${ap.notas.join(', ')}`,
+    'Acesse o portal para aceitar ou recusar a proposta.',
+  ].filter(Boolean);
+  await enviar({
+    to: ap.fornecedor.email,
+    subject: 'Contraproposta de data para o seu agendamento',
+    text: linhas.join('\n'),
+    html: `<h2>Contraproposta de data</h2>${linhas.map((l) => `<p>${esc(l)}</p>`).join('')}`,
+  });
+}
+
+// Avisa o CD quando o fornecedor responde a uma contraproposta.
+async function notificarRespostaFornecedor(ap) {
+  const aceitou = ap.status === 'aprovado';
+  const linhas = [
+    `${ap.fornecedor.razaoSocial} ${aceitou ? 'ACEITOU' : 'RECUSOU'} a contraproposta.`,
+    aceitou ? `Recebimento confirmado: ${dataBR(ap.dataAprovada)} às ${ap.horarioAprovado}` : null,
+    ap.respostaFornecedor ? `Comentário: ${ap.respostaFornecedor}` : null,
+  ].filter(Boolean);
+  await enviar({
+    to: await destinatariosAdmin(),
+    subject: `Contraproposta ${aceitou ? 'aceita' : 'recusada'} — ${ap.fornecedor.razaoSocial}`,
+    text: linhas.join('\n'),
+    html: `<h2>Resposta à contraproposta</h2>${linhas.map((l) => `<p>${esc(l)}</p>`).join('')}`,
+  });
+}
+
+async function notificarReagendamento(ap) {
+  const linhas = [
+    'O Centro de Distribuição alterou a data/horário do seu recebimento.',
+    `Antes: ${dataBR(ap.dataAprovadaAnterior)} às ${ap.horarioAprovadoAnterior}`,
+    `Agora: ${dataBR(ap.dataAprovada)} às ${ap.horarioAprovado}`,
+    ap.observacaoAdmin ? `Observação do CD: ${ap.observacaoAdmin}` : null,
+    `Notas: ${ap.notas.join(', ')}`,
+  ].filter(Boolean);
+  await enviar({
+    to: ap.fornecedor.email,
+    subject: 'Seu agendamento de recebimento foi alterado',
+    text: linhas.join('\n'),
+    html: `<h2>Agendamento alterado</h2>${linhas.map((l) => `<p>${esc(l)}</p>`).join('')}`,
+  });
+}
+
+async function notificarEntrega(ap) {
+  const ok = ap.status === 'recebido';
+  const linhas = [
+    ok ? 'Sua carga foi recebida no Centro de Distribuição.' : 'Sua carga foi recusada no ato da entrega.',
+    `Data e hora: ${dataBR(ap.dataRecebimento)} às ${ap.horarioRecebimento}`,
+    ap.observacaoEntrega ? `${ok ? 'Observação' : 'Motivo'}: ${ap.observacaoEntrega}` : null,
+    `Notas: ${ap.notas.join(', ')}`,
+  ].filter(Boolean);
+  await enviar({
+    to: ap.fornecedor.email,
+    subject: ok ? 'Carga recebida' : 'Carga recusada na entrega',
+    text: linhas.join('\n'),
+    html: `<h2>${ok ? 'Carga recebida' : 'Carga recusada na entrega'}</h2>${linhas.map((l) => `<p>${esc(l)}</p>`).join('')}`,
+  });
+}
+
+module.exports = {
+  notificarNovaSolicitacao, notificarDecisao, notificarContraproposta, notificarRespostaFornecedor,
+  notificarReagendamento, notificarEntrega,
+};

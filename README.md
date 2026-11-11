@@ -12,8 +12,20 @@ Sistema Full Stack (Projeto Final de Arquitetura Web). O **fornecedor** solicita
 1. **Admin** cadastra o fornecedor (razão social, CNPJ, e-mail) em *Fornecedores*.
 2. **Fornecedor** abre *Primeiro acesso*, informa CNPJ + e-mail pré-cadastrados e define sua senha. (Quem não foi pré-cadastrado não consegue criar acesso.)
 3. **Fornecedor** envia a solicitação: peso (kg), volumes, quantidade e números das notas, data sugerida, XML/PDF opcional.
-4. O CD recebe **e-mail** + aviso em tempo real. O admin abre a solicitação e **aprova** (escolhendo data e horário; a tela mostra horários já lotados) ou **recusa** (com motivo).
-5. O fornecedor recebe **e-mail** com a decisão e vê no portal "Recebimento confirmado: DD/MM às HH:mm".
+4. O CD recebe **e-mail** + aviso em tempo real. O admin abre a solicitação e escolhe entre três opções (a tela mostra horários já lotados):
+   - **Aprovar** com data e horário;
+   - **Contraproposta**: sugere outra data/horário quando a data pedida não serve;
+   - **Recusar** com motivo.
+5. O fornecedor recebe **e-mail** com a decisão. Se houve contraproposta, ele **aceita** (vira recebimento confirmado) ou **recusa** (encerra) pelo portal, e o CD é avisado por e-mail e em tempo real. O portal mostra "Recebimento confirmado: DD/MM às HH:mm".
+
+6. **No dia da entrega**, o admin abre a solicitação e **dá baixa**: *Recebido* ou *Recusado na entrega* (motivo obrigatório), informando a **data e o horário reais** do recebimento. Esses dados podem ser corrigidos depois, e a baixa pode ser desfeita.
+7. Antes da entrega o admin também pode **reagendar** (nova data/horário, com checagem de docas); o fornecedor é avisado. Peso, volumes e notas nunca são alterados por essas telas.
+
+Situações: `pendente` → `contraproposta` → `aprovado` → `recebido` | `recusado_entrega` (ou `recusado` antes da entrega; direto de `pendente` para `aprovado`/`recusado`). O admin pode rever uma contraproposta que ainda não foi respondida.
+
+**Painel do admin:** indicadores (inclui cargas com data vencida sem baixa) + **calendário da semana em cards**, cada dia dividido em **Manhã** (antes das 12h) e **Tarde**. Verde = confirmado, azul = contraproposta, verde-azulado = recebido, vermelho = recusado na entrega, amarelo = pedido pendente na data sugerida (dá para ocultar; aparece em "Sem horário").
+
+**Painel do fornecedor:** cargas **pendentes de entrega** (com aviso de data vencida), **já entregues** (data/hora do recebimento e total em kg/volumes), recusadas na entrega e a lista completa com filtros.
 
 ## Como rodar localmente
 
@@ -91,7 +103,12 @@ client/src
 | GET | `/api/agendamentos/:id` | dono ou admin | Detalhe |
 | PUT | `/api/agendamentos/:id` | fornecedor dono | Editar enquanto `pendente` |
 | DELETE | `/api/agendamentos/:id` | dono (pendente) ou admin | Cancelar/excluir |
-| PATCH | `/api/agendamentos/:id/decisao` | admin | Aprovar (`dataAprovada` + `horarioAprovado`) ou recusar (`observacaoAdmin`) |
+| PATCH | `/api/agendamentos/:id/decisao` | admin | `status`: `aprovado` (`dataAprovada` + `horarioAprovado`), `contraproposta` (`dataProposta` + `horarioProposto`) ou `recusado` (`observacaoAdmin`) |
+| PATCH | `/api/agendamentos/:id/resposta` | fornecedor dono | Responde à contraproposta: `acao` = `aceitar` ou `recusar` (+ `observacao`) |
+| GET | `/api/agendamentos/semana?inicio=AAAA-MM-DD` | admin | Agendamentos dos 7 dias a partir de `inicio` (alimenta o calendário) |
+| PATCH | `/api/agendamentos/:id/agendamento` | admin | Reagenda um recebimento aprovado (`dataAprovada`, `horarioAprovado`, `observacaoAdmin`) |
+| PATCH | `/api/agendamentos/:id/entrega` | admin | Baixa: `resultado` = `recebido` \| `recusado_entrega` (+ `dataRecebimento`, `horarioRecebimento`, `observacaoEntrega`) ou `aprovado` para desfazer |
+| GET | `/api/dashboard/fornecedor` | fornecedor | Totais, cargas pendentes de entrega e já entregues da própria empresa |
 | GET | `/api/agendamentos/ocupacao?data=AAAA-MM-DD` | admin | Ocupação das docas por horário |
 | GET | `/api/agendamentos/:id/arquivos/:arquivo` | dono ou admin | Download do XML/PDF |
 | GET | `/api/dashboard` | admin | Indicadores do painel |
@@ -111,7 +128,7 @@ client/src
 cd server && npm test
 ```
 
-Cobrem validação de agendamento (data passada, notas repetidas, campos proibidos), regra de decisão (aprovar exige data/horário; recusar exige motivo), CNPJ e os middlewares de autenticação/autorização.
+Cobrem validação de agendamento (data passada, notas repetidas, campos proibidos), regras de decisão (aprovar e contrapropor exigem data/horário; recusar exige motivo), resposta do fornecedor, reagendamento, baixa da entrega, CNPJ e os middlewares de autenticação/autorização.
 
 ## Deploy (bônus)
 
@@ -124,7 +141,7 @@ Cobrem validação de agendamento (data passada, notas repetidas, campos proibid
 2. Em outra janela anônima: *Primeiro acesso* com os dados cadastrados → mostrar também o erro quando o CNPJ não está pré-cadastrado.
 3. Mostrar **erro de login** ("E-mail ou senha incorretos").
 4. Fornecedor cria solicitação com notas e XML → console da API mostra o **e-mail** e o admin recebe o aviso em tempo real.
-5. Admin aprova com data/horário (mostrar horário lotado) → fornecedor vê "Recebimento confirmado" na hora.
+5. Admin aprova com data/horário (mostrar horário lotado) → fornecedor vê "Recebimento confirmado" na hora. Em outra solicitação, admin envia **contraproposta** → fornecedor aceita → aparece no **calendário da semana**.
 6. Mostrar diferença de acesso: fornecedor tentando abrir `/admin` é redirecionado; a API devolve 403.
 
 ## Ideias de evolução

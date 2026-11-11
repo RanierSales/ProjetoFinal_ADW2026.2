@@ -5,6 +5,7 @@ import useRealtimeRefresh from '../../hooks/useRealtimeRefresh';
 import { formatDate, formatKg } from '../../utils/format';
 import Alert from '../../components/Alert';
 import Spinner from '../../components/Spinner';
+import WeekCalendar from '../../components/WeekCalendar';
 
 export default function Dashboard() {
   const [d, setD] = useState(null);
@@ -28,28 +29,21 @@ export default function Dashboard() {
           <strong>{d.totais.pendente}</strong>
           <span>aguardando análise</span>
         </Link>
+        <div className="stat"><strong>{d.totais.contraproposta}</strong><span>contrapropostas aguardando resposta</span></div>
         <div className="stat"><strong>{d.agenda.recebimentos}</strong><span>recebimentos agendados</span></div>
+        {d.atrasados > 0 && (
+          <Link to="/admin/solicitacoes" className="stat stat-warn">
+            <strong>{d.atrasados}</strong><span>com data vencida, falta dar baixa</span>
+          </Link>
+        )}
         <div className="stat"><strong>{formatKg(d.agenda.pesoKg)}</strong><span>previstos nos próximos dias</span></div>
         <div className="stat"><strong>{d.agenda.volumes}</strong><span>volumes previstos</span></div>
         <div className="stat"><strong>{d.fornecedoresAtivos}</strong><span>fornecedores ativos</span></div>
       </div>
 
-      <div className="grid-2 gap">
-        <section className="card">
-          <h2>Próximos recebimentos</h2>
-          {d.proximos.length === 0 ? <p className="muted">Nenhum recebimento aprovado para os próximos dias.</p> : (
-            <ul className="agenda">
-              {d.proximos.map((a) => (
-                <li key={a.id}>
-                  <time>{formatDate(a.dataAprovada)} · {a.horarioAprovado}</time>
-                  <Link to={`/solicitacoes/${a.id}`}>{a.fornecedor.razaoSocial}</Link>
-                  <span className="muted">{formatKg(a.pesoKg)} · {a.volumes} vol.</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      <WeekCalendar />
 
+      <div className="gap">
         <section className="card">
           <h2>Pendentes mais urgentes</h2>
           {d.pendentesAntigos.length === 0 ? <p className="muted">Tudo em dia. Nenhuma solicitação aguardando.</p> : (

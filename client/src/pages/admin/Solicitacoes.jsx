@@ -8,7 +8,10 @@ import Spinner from '../../components/Spinner';
 import StatusBadge from '../../components/StatusBadge';
 import Pagination from '../../components/Pagination';
 
-const FILTROS = [['pendente', 'Aguardando'], ['aprovado', 'Aprovadas'], ['recusado', 'Recusadas'], ['', 'Todas']];
+const FILTROS = [
+  ['pendente', 'Aguardando'], ['contraproposta', 'Contrapropostas'], ['aprovado', 'Agendadas'],
+  ['recebido', 'Recebidas'], ['recusado_entrega', 'Recusadas na entrega'], ['recusado', 'Recusadas'], ['', 'Todas'],
+];
 
 export default function Solicitacoes() {
   const [status, setStatus] = useState('pendente');
@@ -68,8 +71,10 @@ export default function Solicitacoes() {
                     <td>
                       <StatusBadge status={ap.status} />
                       {ap.status === 'aprovado' && <div className="small muted">{formatDate(ap.dataAprovada)} {ap.horarioAprovado}</div>}
+                      {ap.status === 'contraproposta' && <div className="small muted">Proposta: {formatDate(ap.dataProposta)} {ap.horarioProposto}</div>}
+                      {['recebido', 'recusado_entrega'].includes(ap.status) && <div className="small muted">{formatDate(ap.dataRecebimento)} {ap.horarioRecebimento}</div>}
                     </td>
-                    <td className="row-actions"><Link className="btn btn-ghost" to={`/solicitacoes/${ap.id}`}>{ap.status === 'pendente' ? 'Analisar' : 'Ver'}</Link></td>
+                    <td className="row-actions"><Link className="btn btn-ghost" to={`/solicitacoes/${ap.id}`}>{['pendente', 'contraproposta'].includes(ap.status) ? 'Analisar' : ap.status === 'aprovado' ? 'Gerenciar' : 'Ver'}</Link></td>
                   </tr>
                 ))}
               </tbody>

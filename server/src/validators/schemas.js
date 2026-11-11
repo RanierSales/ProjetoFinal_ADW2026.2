@@ -1,4 +1,4 @@
-﻿const Joi = require('joi');
+const Joi = require('joi');
 const { somenteDigitos, cnpjValido } = require('../utils/cnpj');
 const { hoje } = require('../utils/date');
 
@@ -47,6 +47,11 @@ const dataFutura = (label) =>
     .messages({ 'data.passada': '{{#label}} não pode estar no passado' });
 
 const horario = Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/).label('Horário');
+
+const dataNaoFutura = (label) =>
+  dataISO(label)
+    .custom((v, h) => (v > hoje() ? h.error('data.futura') : v))
+    .messages({ 'data.futura': '{{#label}} não pode estar no futuro' });
 
 // ---------- Auth ----------
 const registerSchema = Joi.object({
@@ -102,11 +107,15 @@ const appointmentUpdateSchema = Joi.object({
   observacao: Joi.string().trim().allow('').max(500).label('Observação'),
 }).min(1);
 
-// Decisão do admin: aprovar exige data+horário; recusar exige justificativa.
+// Decisão do admin: aprovar (data+horário), contrapropor (outra data+horário) ou recusar (motivo).
+const soSe = (valor, schema) => Joi.when('status', { is: valor, then: schema.required(), otherwise: Joi.forbidden() });
+
 const decisionSchema = Joi.object({
-  status: Joi.string().valid('aprovado', 'recusado').required().label('Decisão'),
-  dataAprovada: Joi.when('status', { is: 'aprovado', then: dataFutura('Data aprovada').required(), otherwise: Joi.forbidden() }),
-  horarioAprovado: Joi.when('status', { is: 'aprovado', then: horario.required(), otherwise: Joi.forbidden() }),
+  status: Joi.string().valid('aprovado', 'contraproposta', 'recusado').required().label('Decisão'),
+  dataAprovada: soSe('aprovado', dataFutura('Data aprovada')),
+  horarioAprovado: soSe('aprovado', horario),
+  dataProposta: soSe('contraproposta', dataFutura('Data proposta')),
+  horarioProposto: soSe('contraproposta', horario.label('Horário proposto')),
   observacaoAdmin: Joi.when('status', {
     is: 'recusado',
     then: Joi.string().trim().min(3).max(500).required().label('Motivo da recusa'),
@@ -114,8 +123,38 @@ const decisionSchema = Joi.object({
   }),
 });
 
+// Resposta do fornecedor à contraproposta do CD.
+const respostaSchema = Joi.object({
+  acao: Joi.string().valid('aceitar', 'recusar').required().label('Resposta'),
+  observacao: Joi.string().trim().allow('').max(500).label('Observação'),
+});
+
+// Admin muda data/horário de um recebimento já aprovado (nada da nota muda).
+const reagendarSchema = Joi.object({
+  dataAprovada: dataFutura('Nova data').required(),
+  horarioAprovado: horario.label('Novo horário').required(),
+  observacaoAdmin: Joi.string().trim().allow('').max(500).label('Observação'),
+});
+
+// Baixa da entrega: recebido, recusado no ato da entrega, ou "aprovado" para desfazer a baixa.
+const comResultado = (schema) =>
+  Joi.when('resultado', { is: Joi.valid('recebido', 'recusado_entrega').required(), then: schema.required(), otherwise: Joi.forbidden() });
+
+const entregaSchema = Joi.object({
+  resultado: Joi.string().valid('recebido', 'recusado_entrega', 'aprovado').required().label('Resultado'),
+  dataRecebimento: comResultado(dataNaoFutura('Data do recebimento')),
+  horarioRecebimento: comResultado(horario.label('Horário do recebimento')),
+  observacaoEntrega: Joi.when('resultado', {
+    is: 'recusado_entrega',
+    then: Joi.string().trim().min(3).max(500).required().label('Motivo da recusa na entrega'),
+    otherwise: Joi.string().trim().allow('').max(500).label('Observação'),
+  }),
+});
+
 module.exports = {
   mensagens,
+  reagendarSchema,
+  entregaSchema,
   registerSchema,
   loginSchema,
   supplierCreateSchema,
@@ -123,4 +162,5 @@ module.exports = {
   appointmentCreateSchema,
   appointmentUpdateSchema,
   decisionSchema,
+  respostaSchema,
 };

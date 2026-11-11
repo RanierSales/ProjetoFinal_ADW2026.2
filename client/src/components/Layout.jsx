@@ -18,6 +18,18 @@ function RealtimeBridge() {
       toast(`Nova solicitação de ${p.fornecedor}`, 'info');
       mudou();
     });
+    socket.on('agendamento:atualizado', (p) => {
+      toast(p.mensagem, 'info');
+      mudou();
+    });
+    socket.on('agendamento:contraproposta', () => {
+      toast('O CD enviou uma contraproposta de data. Veja em "Minhas solicitações".', 'info');
+      mudou();
+    });
+    socket.on('agendamento:respondido', (p) => {
+      toast(`${p.fornecedor} ${p.status === 'aprovado' ? 'aceitou' : 'recusou'} a contraproposta`, p.status === 'aprovado' ? 'success' : 'error');
+      mudou();
+    });
     socket.on('agendamento:decidido', (p) => {
       toast(p.status === 'aprovado' ? 'Seu agendamento foi aprovado!' : 'Sua solicitação foi analisada: recusada.', p.status === 'aprovado' ? 'success' : 'error');
       mudou();
