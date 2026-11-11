@@ -130,19 +130,7 @@ cd server && npm test
 
 Cobrem validação de agendamento (data passada, notas repetidas, campos proibidos), regras de decisão (aprovar e contrapropor exigem data/horário; recusar exige motivo), resposta do fornecedor, reagendamento, baixa da entrega, CNPJ e os middlewares de autenticação/autorização.
 
-## Deploy (bônus)
 
-- **API:** Render/Railway — *root directory* `server`, comando `npm start`, variáveis do `.env`, `MONGO_URI` do Atlas e `CLIENT_URL` com a URL do frontend. Atenção: discos de plano gratuito são efêmeros, então os anexos enviados somem a cada deploy (para produção real, troque o multer de disco por S3/Cloudinary).
-- **Frontend:** Vercel/Netlify — *root directory* `client`, build `npm run build`, saída `dist`, variável `VITE_API_URL`. Adicione uma regra de *rewrite* de todas as rotas para `/index.html` (SPA).
-
-## Roteiro sugerido para a apresentação (3–5 min)
-
-1. Admin loga → *Fornecedores* → cadastra um fornecedor.
-2. Em outra janela anônima: *Primeiro acesso* com os dados cadastrados → mostrar também o erro quando o CNPJ não está pré-cadastrado.
-3. Mostrar **erro de login** ("E-mail ou senha incorretos").
-4. Fornecedor cria solicitação com notas e XML → console da API mostra o **e-mail** e o admin recebe o aviso em tempo real.
-5. Admin aprova com data/horário (mostrar horário lotado) → fornecedor vê "Recebimento confirmado" na hora. Em outra solicitação, admin envia **contraproposta** → fornecedor aceita → aparece no **calendário da semana**.
-6. Mostrar diferença de acesso: fornecedor tentando abrir `/admin` é redirecionado; a API devolve 403.
 
 ## Ideias de evolução
 
